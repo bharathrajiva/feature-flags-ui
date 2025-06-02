@@ -4,6 +4,7 @@ cachetools==5.5.2
 certifi==2025.4.26
 charset-normalizer==3.4.2
 click==8.2.1
+dotenv==0.9.9
 durationpy==0.10
 fastapi==0.115.12
 gitdb==4.0.12
@@ -20,6 +21,7 @@ pyasn1_modules==0.4.2
 pydantic==2.11.5
 pydantic_core==2.33.2
 python-dateutil==2.9.0.post0
+python-dotenv==1.1.0
 PyYAML==6.0.2
 requests==2.32.3
 requests-oauthlib==2.0.0
