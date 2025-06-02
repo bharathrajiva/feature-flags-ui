@@ -75,7 +75,7 @@ export default function Flags({ token, project, env, envs }) {
     setAddingFlags({
       [generateId()]: {
         flagName: "new-flag-1",
-        state: "ENABLED",
+        state: "DISABLED",
         defaultVariant: "off",
         variants: { on: true, off: false },
       },

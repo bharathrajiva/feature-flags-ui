@@ -56,7 +56,7 @@ spec:
       serviceAccountName: featureflags-ui-sa
       containers:
       - name: featureflags-ui-backend
-        image: bharathrajiva/featureflags-ui-backend:arm64-v5
+        image: bharathrajiva/featureflags-ui-backend:arm64-v6
         ports:
         - containerPort: 8000
         envFrom:
@@ -105,7 +105,7 @@ spec:
     spec:
       containers:
       - name: featureflags-ui-frontend
-        image: bharathrajiva/featureflags-ui-frontend:arm64-v4
+        image: bharathrajiva/featureflags-ui-frontend:arm64-v5
         ports:
         - containerPort: 80
         resources:
