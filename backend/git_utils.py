@@ -528,7 +528,7 @@ def add_flags(project: str, updates: dict[str, bool], pat: str) -> bool:
         raise HTTPException(status_code=404, detail="User not found")
 
     flag_summary = ", ".join(updated_keys[:5]) + ("..." if len(updated_keys) > 5 else "")
-    commit_message = f"chore(@{username}): adds {len(updated_keys)} flags ({flag_summary})"
+    commit_message = f"chore(@{username}): {project} adds {len(updated_keys)} flags ({flag_summary})"
 
 
     payload = {
