@@ -26,7 +26,7 @@ export async function getFlags(project, env, token) {
 
 export async function updateFlags(project, env, flagsUpdate, token) {
   const res = await fetch(`${BASE_URL}/flags/${project}/${env}`, {
-    method: "POST",
+    method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -40,7 +40,7 @@ export async function updateFlags(project, env, flagsUpdate, token) {
   return res.json();
 }
 export async function addFlags(project, flags, token) {
-  const response = await fetch(`${BASE_URL}/add/flags/${project}`, {
+  const response = await fetch(`${BASE_URL}/flags/${project}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

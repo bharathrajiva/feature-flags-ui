@@ -131,7 +131,7 @@ def get_flags(project: str, env: str, authorization: str = Header(...)):
     return flags_dict
 
 
-@app.post("/flags/{project}/{env}")
+@app.put("/flags/{project}/{env}")
 def update_flags(
     project: str,
     env: str,
@@ -158,7 +158,7 @@ def update_flags(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/add/flags/{project}")
+@app.post("/flags/{project}")
 def add_flag(
     project: str,
     request: FlagUpdateRequest,
