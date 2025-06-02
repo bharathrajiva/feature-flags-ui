@@ -1,11 +1,13 @@
 # backend/main.py
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import Query, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import RootModel
 from typing import Dict, List
 import git_utils
 import k8s_utils
+from pydantic import BaseModel
+import requests
 
 app = FastAPI()
 
@@ -59,7 +61,32 @@ class FlagUpdateRequest(RootModel[Dict[str, dict]]):
     }`
     """
     pass
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    codeVerifier: str
+    redirect_uri: str
 
+CLIENT_ID = "aff1324744305e745282f8822f75b4c0509d4aaea711bb709057bea49f15b454"
+CLIENT_SECRET = "gloas-92a7ebb4fa732e3b837f60c05f3c5dafb405b54e8f8fb738b5fafc1d1c7567f4"
+REDIRECT_URI = "http://localhost:5173"
+
+@app.post("/oauth/callback")
+def oauth_callback(request: OAuthCallbackRequest):
+    token_url = "https://gitlab.com/oauth/token"
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code": request.code,
+        "grant_type": "authorization_code",
+        "redirect_uri": request.redirect_uri,
+        "code_verifier": request.codeVerifier,   # important for PKCE
+    }
+    response = requests.post(token_url, data=data)
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail=response.text)
+    token_data = response.json()
+    access_token = token_data.get("access_token")
+    return {"access_token": access_token}
 
 @app.get("/projects", response_model=List[str])
 def list_projects(authorization: str = Header(...)):
@@ -124,6 +151,31 @@ def update_flags(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/add/flags/{project}")
+def add_flag(
+    project: str,
+    request: FlagUpdateRequest,
+    authorization: str = Header(...),
+):
+    pat = _extract_token(authorization)
+    updates: Dict[str, dict] = request.model_dump()
+    # if "review-mr" in env:
+        # try:
+        #     k8s_utils.patch_flags(project, env, updates)
+        #     return {"status": "patched"}
+        # except Exception as e:
+        #     raise HTTPException(status_code=500, detail=f"K8s patch failed: {e}")
+    
+    try:
+        success = git_utils.add_flags_safe(project, updates, pat)        
+        if success:
+            return {"status": "committed"}
+        else:
+            raise HTTPException(status_code=500, detail="GitLab add returned false")
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def _extract_token(authorization_header: str) -> str:
     if not authorization_header.lower().startswith("bearer "):
