@@ -31,13 +31,12 @@ export default function Flags({ token, project, env, envs }) {
       .finally(() => setLoading(false));
   }, [project, env, token]);
 
-  const hasAlphaBetaCiNightlyEnv = 
-  typeof env === "string" &&
-  (env.endsWith("alpha") ||
-   env.endsWith("beta") ||
-   env.endsWith("ci") ||
-   env.endsWith("nightly"));
-
+  const hasAlphaBetaCiNightlyEnv =
+    typeof env === "string" &&
+    (env.endsWith("alpha") ||
+      env.endsWith("beta") ||
+      env.endsWith("ci") ||
+      env.endsWith("nightly"));
 
   // Handle changes for editing existing flags
   function handleChange(key, field, value, isAdding = false) {
@@ -128,69 +127,108 @@ export default function Flags({ token, project, env, envs }) {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
   if (!flags) return <p>No flags found</p>;
 
+  // Common styles for boxes
+  const boxStyle = {
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+    margin: "12px 0",
+    padding: "16px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    backgroundColor: "#1e1e1e",
+  };
+
+  // Common styles for selects to look nicer but same color
+  const selectStyle = {
+    padding: "6px 10px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    backgroundColor: "#1e1e1e",
+    cursor: "pointer",
+    fontSize: "1rem",
+  };
+
+  // Common styles for inputs
+  const inputStyle = {
+    padding: "6px 10px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "1rem",
+    width: "200px",
+    marginBottom: "8px",
+  };
+
+  // Common label style
+  const labelStyle = {
+    display: "block",
+    marginBottom: "8px",
+    fontWeight: "600",
+  };
+const variantBoxStyle = {
+  backgroundColor: "##1e1e1e",
+  border: "1px solid #ddd",
+  borderRadius: "6px",
+  padding: "12px",
+  marginTop: "12px",
+};
+
   // Editing UI for existing flags
   if (editFlags) {
     return (
       <div>
-        <h4>
+        <h4 style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
           Editing Flags for {project} / {env}
+          <button disabled={saving} onClick={saveChanges} style={{ padding: "8px 14px", borderRadius: "6px", cursor: saving ? "not-allowed" : "pointer" }}>
+            Save
+          </button>
+          <button disabled={saving} onClick={() => setEditFlags(null)} style={{ padding: "8px 14px", borderRadius: "6px", cursor: saving ? "not-allowed" : "pointer" }}>
+            Cancel
+          </button>
         </h4>
         {Object.entries(editFlags).map(([flagKey, flag]) => (
-          <div
-            key={flagKey}
-            style={{ border: "1px solid #ccc", margin: "8px", padding: "8px" }}
-          >
-            <h5>{flagKey}</h5>
-            <label>
+          <div key={flagKey} style={boxStyle}>
+            <h5 style={{ marginBottom: "12px" }}>{flagKey}</h5>
+            <label style={labelStyle}>
               State:{" "}
               <select
                 value={flag.state}
                 onChange={(e) => handleChange(flagKey, "state", e.target.value)}
+                style={selectStyle}
               >
                 <option value="ENABLED">ENABLED</option>
                 <option value="DISABLED">DISABLED</option>
               </select>
             </label>
-            <br />
-            <label>
+            <label style={labelStyle}>
               Default Variant:{" "}
               <input
                 type="text"
                 value={flag.defaultVariant}
-                onChange={(e) =>
-                  handleChange(flagKey, "defaultVariant", e.target.value)
-                }
+                onChange={(e) => handleChange(flagKey, "defaultVariant", e.target.value)}
+                style={inputStyle}
               />
             </label>
-            <br />
-            <div>
-              Variants:
-              {Object.entries(flag.variants).map(([vKey, vVal]) => (
-                <div key={vKey}>
-                  <input
-                    type="text"
-                    value={vKey}
-                    readOnly
-                    style={{ width: "120px", marginRight: "8px" }}
-                  />
-                  <input
-                    type="text"
-                    value={String(vVal)}
-                    onChange={(e) =>
-                      handleVariantsChange(flagKey, vKey, e.target.value)
-                    }
-                  />
-                </div>
-              ))}
-            </div>
+<div style={variantBoxStyle}>
+  <strong style={{ display: "block", marginBottom: "8px" }}>Variants:</strong>
+  {Object.entries(flag.variants).map(([vKey, vVal]) => (
+    <div key={vKey} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+      <input
+        type="text"
+        value={vKey}
+        readOnly
+        style={{ ...inputStyle, width: "140px", cursor: "not-allowed" }}
+      />
+      <input
+        type="text"
+        value={String(vVal)}
+        onChange={(e) => handleVariantsChange(flagKey, vKey, e.target.value)}
+        style={{ ...inputStyle, width: "200px" }}
+      />
+    </div>
+  ))}
+</div>
+
           </div>
         ))}
-        <button disabled={saving} onClick={saveChanges}>
-          Save
-        </button>{" "}
-        <button disabled={saving} onClick={() => setEditFlags(null)}>
-          Cancel
-        </button>
       </div>
     );
   }
@@ -199,12 +237,47 @@ export default function Flags({ token, project, env, envs }) {
   if (addingFlags) {
     return (
       <div>
-        <h4>Adding New Flags for {project}</h4>
+        <h4
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "1rem",
+            marginBottom: "16px",
+          }}
+        >
+          <span>Adding New Flags for {project}</span>
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "nowrap" }}>
+            <button
+              onClick={() =>
+                setAddingFlags((prev) => ({
+                  ...prev,
+                  [generateId()]: {
+                    flagName: `new-flag-${Object.keys(prev).length + 1}`,
+                    state: "ENABLED",
+                    defaultVariant: "off",
+                    variants: { on: true, off: false },
+                  },
+                }))
+              }
+              style={{ padding: "8px 14px", borderRadius: "6px", cursor: "pointer" }}
+            >
+              Add Another Flag
+            </button>
+
+            <button disabled={saving} onClick={saveNewFlags} style={{ padding: "8px 14px", borderRadius: "6px", cursor: saving ? "not-allowed" : "pointer" }}>
+              Save New Flags
+            </button>
+
+            <button disabled={saving} onClick={() => setAddingFlags(null)} style={{ padding: "8px 14px", borderRadius: "6px", cursor: saving ? "not-allowed" : "pointer" }}>
+              Cancel
+            </button>
+          </div>
+        </h4>
+
         {Object.entries(addingFlags).map(([id, flag]) => (
-          <div
-            key={id}
-            style={{ border: "1px solid #ccc", margin: "8px", padding: "8px" }}
-          >
+          <div key={id} style={boxStyle}>
             <h5>
               <input
                 type="text"
@@ -219,93 +292,68 @@ export default function Flags({ token, project, env, envs }) {
                     },
                   }));
                 }}
-                style={{ width: "200px" }}
+                style={{ ...inputStyle, width: "220px" }}
               />
             </h5>
-            <label>
+            <label style={labelStyle}>
               State:{" "}
               <select
                 value={flag.state}
-                onChange={(e) =>
-                  handleChange(id, "state", e.target.value, true)
-                }
+                onChange={(e) => handleChange(id, "state", e.target.value, true)}
+                style={selectStyle}
               >
                 <option value="ENABLED">ENABLED</option>
                 <option value="DISABLED">DISABLED</option>
               </select>
             </label>
-            <br />
-            <label>
+            <label style={labelStyle}>
               Default Variant:{" "}
               <input
                 type="text"
                 value={flag.defaultVariant}
-                onChange={(e) =>
-                  handleChange(id, "defaultVariant", e.target.value, true)
-                }
+                onChange={(e) => handleChange(id, "defaultVariant", e.target.value, true)}
+                style={inputStyle}
               />
             </label>
-            <br />
-            <div>
-              Variants:
-              {Object.entries(flag.variants).map(([vKey, vVal]) => (
-                <div key={vKey}>
-                  <input
-                    type="text"
-                    value={vKey}
-                    readOnly
-                    style={{ width: "120px", marginRight: "8px" }}
-                  />
-                  <input
-                    type="text"
-                    value={String(vVal)}
-                    onChange={(e) =>
-                      handleVariantsChange(id, vKey, e.target.value, true)
-                    }
-                  />
-                </div>
-              ))}
-              <button
-                onClick={() =>
-                  setAddingFlags((prev) => ({
-                    ...prev,
-                    [id]: {
-                      ...prev[id],
-                      variants: {
-                        ...prev[id].variants,
-                        ["new-variant"]: "value",
-                      },
-                    },
-                  }))
-                }
-              >
-                Add Variant
-              </button>
-            </div>
+ <div style={variantBoxStyle}>
+  <strong style={{ display: "block", marginBottom: "8px" }}>Variants:</strong>
+  {Object.entries(flag.variants).map(([vKey, vVal]) => (
+    <div key={vKey} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+      <input
+        type="text"
+        value={vKey}
+        readOnly
+        style={{ ...inputStyle, width: "140px",  cursor: "not-allowed" }}
+      />
+      <input
+        type="text"
+        value={String(vVal)}
+        onChange={(e) => handleVariantsChange(id, vKey, e.target.value, true)}
+        style={{ ...inputStyle, width: "200px" }}
+      />
+    </div>
+  ))}
+  <button
+    style={{ padding: "8px 14px", borderRadius: "6px", cursor: saving ? "not-allowed" : "pointer" }}
+    onClick={() =>
+      setAddingFlags((prev) => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          variants: {
+            ...prev[id].variants,
+            ["new-variant"]: "value",
+          },
+        },
+      }))
+    }
+  >
+    Add Variant
+  </button>
+</div>
+
           </div>
         ))}
-        <button
-          onClick={() =>
-            setAddingFlags((prev) => ({
-              ...prev,
-              [generateId()]: {
-                flagName: `new-flag-${Object.keys(prev).length + 1}`,
-                state: "ENABLED",
-                defaultVariant: "off",
-                variants: { on: true, off: false },
-              },
-            }))
-          }
-        >
-          Add Another Flag
-        </button>
-        <br />
-        <button disabled={saving} onClick={saveNewFlags}>
-          Save New Flags
-        </button>{" "}
-        <button disabled={saving} onClick={() => setAddingFlags(null)}>
-          Cancel
-        </button>
       </div>
     );
   }
@@ -313,15 +361,45 @@ export default function Flags({ token, project, env, envs }) {
   // Default view with buttons for edit and add
   return (
     <div>
-      <h4>
+      <h4 style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
         Flags for {project} / {env}
+        <button
+          onClick={startEditing}
+          style={{
+            padding: "8px 14px",
+            borderRadius: "6px",
+            cursor: "pointer",
+            marginLeft: "auto",
+          }}
+        >
+          Edit Flags
+        </button>
+        {/* Show Add Flags only if at least one env ends with 'alpha' */}
+        {hasAlphaBetaCiNightlyEnv && (
+          <button
+            onClick={startAdding}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Add Flags
+          </button>
+        )}
       </h4>
-      <pre style={{ background: "#000", padding: "10px" }}>
+      <pre
+        style={{
+          background: "#000",
+          padding: "10px",
+          borderRadius: "8px",
+          color: "#fff",
+          overflowX: "auto",
+          maxHeight: "300px",
+        }}
+      >
         {JSON.stringify(flags, null, 2)}
       </pre>
-      <button onClick={startEditing}>Edit Flags</button>{" "}
-      {/* Show Add Flags only if at least one env ends with 'alpha' */}
-      {hasAlphaBetaCiNightlyEnv && <button onClick={startAdding}>Add Flags</button>}
     </div>
   );
 }

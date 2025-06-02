@@ -7,7 +7,7 @@ const selectStyle = {
   fontSize: "16px",
   borderRadius: "6px",
   border: "1.5px solid #ccc",
-  backgroundColor: "#242424",
+  backgroundColor: "#121212",
   cursor: "pointer",
   transition: "border-color 0.3s",
 };
