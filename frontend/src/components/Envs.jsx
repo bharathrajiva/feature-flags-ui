@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const selectStyle = {
   width: "100%",
   maxWidth: "500px",
@@ -27,7 +28,7 @@ export default function Envs({ token, project, onSelectEnv }) {
       setLoading(true);
       try {
         const res = await fetch(
-          `http://localhost:8000/projects/${project}/envs`,
+          `${BACKEND_URL}/projects/${project}/envs`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) throw new Error("Failed to load envs");

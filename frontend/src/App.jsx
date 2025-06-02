@@ -93,23 +93,40 @@ export default function App() {
         <h1 style={{ margin: 0, fontWeight: "700" }}>
           Feature Flags Manager
           {username && (
-            <span style={{ marginLeft: "1rem", fontWeight: "400", fontSize: "1.2rem" }}>
+            <span style={{ marginLeft: "1rem", fontWeight: "400", fontSize: "1.2rem", display: "inline-block", whiteSpace: "nowrap" }}>
               — Welcome, @{username}
             </span>
           )}
         </h1>
+          <button
+            onClick={() => {
+              setToken(null);
+              setSelectedProject(null);
+              setSelectedEnv(null);
+              setUsername(null);
+            }}
+            style={{ 
+              ...buttonStyle, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px' 
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2L9.5 7.5L12 15L14.5 7.5L12 2Z" fill="#E24329" />
+              <path d="M7.5 7.5L5 12L7.5 15L10 7.5H7.5Z" fill="#FC6D26" />
+              <path d="M16.5 7.5L19 12L16.5 15L14 7.5H16.5Z" fill="#FC6D26" />
+              <path d="M12 15L10 22L14 22L12 15Z" fill="#FCA326" />
+            </svg>
+            Logout
+          </button>
 
-        <button
-          onClick={() => {
-            setToken(null);
-            setSelectedProject(null);
-            setSelectedEnv(null);
-            setUsername(null);
-          }}
-          style={buttonStyle}
-        >
-          Logout
-        </button>
       </header>
 
       <section style={sectionStyle}>
