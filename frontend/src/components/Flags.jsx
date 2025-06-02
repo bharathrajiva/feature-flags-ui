@@ -7,7 +7,7 @@ function generateId() {
   return `id-${nextId++}`;
 }
 
-export default function Flags({ token, project, env }) {
+export default function Flags({ token, project, env, envs }) {
   const [flags, setFlags] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,6 +30,14 @@ export default function Flags({ token, project, env }) {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [project, env, token]);
+
+  const hasAlphaBetaCiNightlyEnv = 
+  typeof env === "string" &&
+  (env.endsWith("alpha") ||
+   env.endsWith("beta") ||
+   env.endsWith("ci") ||
+   env.endsWith("nightly"));
+
 
   // Handle changes for editing existing flags
   function handleChange(key, field, value, isAdding = false) {
@@ -312,7 +320,8 @@ export default function Flags({ token, project, env }) {
         {JSON.stringify(flags, null, 2)}
       </pre>
       <button onClick={startEditing}>Edit Flags</button>{" "}
-      <button onClick={startAdding}>Add Flags</button>
+      {/* Show Add Flags only if at least one env ends with 'alpha' */}
+      {hasAlphaBetaCiNightlyEnv && <button onClick={startAdding}>Add Flags</button>}
     </div>
   );
 }
