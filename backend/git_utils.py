@@ -241,9 +241,9 @@ def get_envs(project: str, pat: str) -> list[str] | None:
 
     print(f"User {username} has access to the following environments: {envs_accessible}")
 
-    # If user has no access to any envs, return empty list
-    if not envs_accessible:
-        return []
+    # # If user has no access to any envs, return empty list
+    # if not envs_accessible:
+    #     return []
 
     result = []
     page = 1
@@ -268,16 +268,22 @@ def get_envs(project: str, pat: str) -> list[str] | None:
             for entry in data
             if entry["type"] == "tree"
             and entry["name"] != "_template"
-            and any(pattern in entry["name"] for pattern in ["-alpha", "-beta", "-ci", "-nightly"])
         )
         page += 1
 
     # Only include folders the user has access to
-    filtered_result = []
-    for env in result:
-        env_path = f"/{project}/*"
-        if "*" in envs_accessible or env_path in envs_accessible:
-            filtered_result.append(env)
+        filtered_result = []
+        has_full_access = "*" in envs_accessible or f"/{project}/*" in envs_accessible
+        for env in result:
+            is_special_env = any(pattern in env for pattern in ["-alpha", "-beta", "-ci", "-nightly"])
+
+            if has_full_access:
+                # User has full access — include everything
+                filtered_result.append(env)
+            elif not is_special_env:
+                print(f"User {username} has limited access to {env}.")
+                # User has limited access — include only non-special envs
+                filtered_result.append(env)
 
     return filtered_result
 

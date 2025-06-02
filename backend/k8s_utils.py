@@ -44,34 +44,45 @@ def get_flags(project, env):
         print(f"K8s get error: {e}")
         return None
 
+from kubernetes import client, config
+from typing import Dict
 
-# def patch_flags(project, env, flags):
-#     try:
-#         api = client.CustomObjectsApi()
+def patch_flags(project: str, env: str, flags: Dict[str, dict]) -> bool:
+    """
+    Patch a FeatureFlag custom resource in Kubernetes managed by OpenFeature Operator.
 
-#         # Customize group, version, and plural to match your OpenFeature CRD
-#         group = "openfeature.dev"
-#         version = "v1alpha1"
-#         namespace = env  # Assuming env = namespace
-#         plural = "featureflagsources"
-#         name = f"{project}-feature-flags"
+    :param project: Project name (currently unused, included for future logic).
+    :param env: The environment name, which is also the namespace (e.g., 'review-mr-23').
+    :param flags: A dictionary of flags to patch into the resource.
+    :return: True if successful, False otherwise.
+    """
+    try:
+        api = client.CustomObjectsApi()
 
-#         # Prepare patch payload — example assumes flags under spec.flags
-#         patch = {
-#             "spec": {
-#                 "flags": flags
-#             }
-#         }
+        group = "core.openfeature.dev"
+        version = "v1beta1"
+        plural = "featureflags"
+        namespace = f"flagd-{env}"
+        name = f"{env}-app-flags"
 
-#         api.patch_namespaced_custom_object(
-#             group=group,
-#             version=version,
-#             namespace=namespace,
-#             plural=plural,
-#             name=name,
-#             body=patch
-#         )
-#         return True
-#     except Exception as e:
-#         print(f"K8s patch error: {e}")
-#         return False
+        patch_body = {
+            "spec": {
+                "flagSpec": {
+                    "flags": flags
+                }
+            }
+        }
+
+        print(api.patch_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            name=name,
+            body=patch_body,
+        ))
+        return True
+
+    except Exception as e:
+        print(f"[ERROR] Failed to patch FeatureFlag in namespace '{namespace}': {e}")
+        return False
