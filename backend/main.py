@@ -79,19 +79,20 @@ def list_envs(project: str, authorization: str = Header(...)):
 @app.get("/flags/{project}/{env}", response_model=Dict[str, dict])
 def get_flags(project: str, env: str, authorization: str = Header(...)):
     pat = _extract_token(authorization)
-    if "review-mr" in env:
-        try:
-            flags_dict = k8s_utils.get_flags(project, env)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"K8s get failed: {e}")
-    else:
-        try:
-            flags_dict = git_utils.read_flags(project, env, pat)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"GitLab get failed: {e}")
-
-    if not flags_dict:
+    # if "review-mr" in env:
+    try:
+        flags_dict = k8s_utils.get_flags(project, env)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"K8s get failed: {e}")
+    # else:
+    # try:
+    #     flags_dict = git_utils.read_flags(project, env, pat)
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"GitLab get failed: {e}")
+    if flags_dict is None:
         raise HTTPException(status_code=404, detail="Flags not found")
+
+
 
     return flags_dict
 
@@ -105,12 +106,12 @@ def update_flags(
 ):
     pat = _extract_token(authorization)
     updates: Dict[str, dict] = request.model_dump()
-    if "review-mr" in env:
-        try:
-            k8s_utils.patch_flags(namespace=env, flags_dict=updates)
-            return {"status": "patched"}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"K8s patch failed: {e}")
+    # if "review-mr" in env:
+        # try:
+        #     k8s_utils.patch_flags(project, env, updates)
+        #     return {"status": "patched"}
+        # except Exception as e:
+        #     raise HTTPException(status_code=500, detail=f"K8s patch failed: {e}")
 
     try:
         success = git_utils.safe_update_flags(project, env, updates, pat)
