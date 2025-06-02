@@ -1,5 +1,5 @@
 # backend/main.py
-
+from dotenv import load_dotenv
 from fastapi import Query, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import RootModel
@@ -8,8 +8,11 @@ import git_utils
 import k8s_utils
 from pydantic import BaseModel
 import requests
+import os
 
 app = FastAPI()
+
+load_dotenv()
 
 # Allow your React frontend (e.g. http://localhost:5173) to call this backend.
 app.add_middleware(
@@ -66,9 +69,13 @@ class OAuthCallbackRequest(BaseModel):
     codeVerifier: str
     redirect_uri: str
 
-CLIENT_ID = "aff1324744305e745282f8822f75b4c0509d4aaea711bb709057bea49f15b454"
-CLIENT_SECRET = "gloas-92a7ebb4fa732e3b837f60c05f3c5dafb405b54e8f8fb738b5fafc1d1c7567f4"
-REDIRECT_URI = "http://localhost:5173"
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET", "gloas-92a7ebb4fa732e3b837f60c05f3c5dafb405b54e8f8fb738b5fafc1d1c7567f4")
+REDIRECT_URI = os.getenv("REDIRECT_URI", "https://featureflags-ui.bee.secloredevops.com")
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
 
 @app.post("/oauth/callback")
 def oauth_callback(request: OAuthCallbackRequest):

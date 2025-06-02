@@ -1,19 +1,21 @@
 # backend/git_utils.py
 import os
+from dotenv import load_dotenv
 import requests
 import yaml
 import threading
 from fastapi import HTTPException
-
+import time
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
-
-GITLAB_API_BASE = "https://gitlab.com/api/v4"
-FLAGS_REPO_PATH_WITH_NAMESPACE = "bee26401516/projects/flags"
-FLAG_PAT = "glpat-M8Lb62BTcWqMj5KZom27"
+load_dotenv()
+GITLAB_API_BASE = os.environ.get("GITLAB_API_BASE", "https://gitlab.com/api/v4")
+FLAGS_REPO_PATH_WITH_NAMESPACE = os.environ.get("FLAGS_REPO_PATH_WITH_NAMESPACE", "mygroup/flags")
+FLAG_PAT = os.environ.get("FLAG_PAT")
 # e.g. "mygroup/flags" or "your-username/flags"
 # This is the GitLab “path_with_namespace” for your flags repo.
 
-BRANCH = "master"
+BRANCH = os.environ.get("BRANCH", "master")
+
 # The branch in which your feature-flags-patch.yaml files live (e.g. "main" or "master").
 
 # ─── THREADING LOCKS ────────────────────────────────────────────────────────────
@@ -347,22 +349,20 @@ def safe_update_flags(project: str, env: str, updates: dict[str, bool], pat: str
     1) Acquire (project, env) lock so only one thread is updating that file at a time.
     2) Call update_flags_via_gitlab():
        - If it returns True → done.
-       - If False (409 Conflict) → re-fetch and retry exactly once.
+       - If False (409 Conflict) → retry up to 5 times with delay.
     Returns True if committed, or raises HTTPException on unrecoverable errors.
     """
     lock = _get_lock(project, env)
     with lock:
-        # First attempt
-        success = update_flags_via_gitlab(project, env, updates, pat)
-        if success:
-            return True
-
-        # Conflict → retry once
-        success_retry = update_flags_via_gitlab(project, env, updates, pat)
-        if success_retry:
-            return True
-
-        # If still conflict → raise error
+        max_retries = 5
+        for attempt in range(max_retries):
+            success = update_flags_via_gitlab(project, env, updates, pat)
+            if success:
+                return True
+            if attempt < max_retries - 1:
+                time.sleep(1)  # wait 1 second before retrying
+        
+        # If all retries failed
         raise HTTPException(
             status_code=409,
             detail="Conflict updating flags. Please fetch the latest and try again."
@@ -558,17 +558,18 @@ def add_flags_safe(project: str, updates: dict[str, bool], pat: str) -> bool:
     """
     Safely add or update flags in {project}/flags.yaml with locking.
     Acquires a lock for the (project) to prevent concurrent updates.
-    Retries once if a conflict occurs.
+    Retries up to 5 times if a conflict occurs.
     """
     lock = _get_lock(project, "flags")
     with lock:
-        success = add_flags(project, updates, pat)
-        if success:
-            return True
-        # Conflict → retry once
-        success_retry = add_flags(project, updates, pat)
-        if success_retry:
-            return True
+        max_retries = 5
+        for attempt in range(max_retries):
+            success = add_flags(project, updates, pat)
+            if success:
+                return True
+            if attempt < max_retries - 1:
+                time.sleep(1)  # delay before retrying
+        
         raise HTTPException(
             status_code=409,
             detail="Conflict updating flags. Please fetch the latest and try again."

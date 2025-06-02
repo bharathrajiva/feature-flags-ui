@@ -1,8 +1,10 @@
 from kubernetes import client, config
 import jsonpatch
 import os
+from dotenv import load_dotenv
 
 # Automatically detect the environment
+load_dotenv()
 if os.getenv("KUBERNETES_SERVICE_HOST"):
     config.load_incluster_config()
 else:

@@ -1,0 +1,173 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: featureflags-ui
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: featureflags-ui-sa
+  namespace: featureflags-ui
+---
+# ClusterRole for cross-namespace access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: featureflags-ui-global-reader
+rules:
+- apiGroups: ["core.openfeature.dev"]
+  resources: ["featureflags"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: featureflags-ui-global-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: featureflags-ui-sa
+  namespace: featureflags-ui
+roleRef:
+  kind: ClusterRole
+  name: featureflags-ui-global-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: featureflags-ui-backend
+  namespace: featureflags-ui
+  labels:
+    app: featureflags-ui-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: featureflags-ui-backend
+  template:
+    metadata:
+      labels:
+        app: featureflags-ui-backend
+    spec:
+      serviceAccountName: featureflags-ui-sa
+      containers:
+      - name: featureflags-ui-backend
+        image: bharathrajiva/featureflags-ui-backend:arm64-v5
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: featureflags-env
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4096Mi"
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: featureflags-ui-backend
+  namespace: featureflags-ui
+spec:
+  type: ClusterIP
+  selector:
+    app: featureflags-ui-backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: featureflags-ui-frontend
+  namespace: featureflags-ui
+  labels:
+    app: featureflags-ui-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: featureflags-ui-frontend
+  template:
+    metadata:
+      labels:
+        app: featureflags-ui-frontend
+    spec:
+      containers:
+      - name: featureflags-ui-frontend
+        image: bharathrajiva/featureflags-ui-frontend:arm64-v4
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: featureflags-ui-frontend
+  namespace: featureflags-ui
+spec:
+  type: ClusterIP
+  selector:
+    app: featureflags-ui-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+---
+# Ingress for Backend and Frontend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: featureflags-ui-ingress
+  namespace: featureflags-ui
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-2016-08
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: featureflags
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+spec:
+  ingressClassName: public-ingress
+  rules:
+  - host: featureflags-ui-api.bee.secloredevops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: featureflags-ui-backend
+            port:
+              number: 8000
+  - host: featureflags-ui.bee.secloredevops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: featureflags-ui-frontend
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - featureflags-ui-api.bee.secloredevops.com
+    - featureflags-ui.bee.secloredevops.com

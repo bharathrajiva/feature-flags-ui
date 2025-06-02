@@ -12,6 +12,8 @@ const selectStyle = {
   transition: "border-color 0.3s",
 };
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
 const containerStyle = {
   margin: "1em 0",
 };
@@ -24,7 +26,7 @@ export default function Projects({ token, onSelectProject }) {
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:8000/projects", {
+        const res = await fetch(`${BACKEND_URL}/projects`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to load projects");
