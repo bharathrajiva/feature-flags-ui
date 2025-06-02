@@ -8,18 +8,18 @@ from fastapi import HTTPException
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
 GITLAB_API_BASE = "https://gitlab.com/api/v4"
-FLAGS_REPO_PATH_WITH_NAMESPACE = "bee26401516/projects/flags"  
+FLAGS_REPO_PATH_WITH_NAMESPACE = "bee26401516/projects/flags"
 FLAG_PAT = "glpat-M8Lb62BTcWqMj5KZom27"
 # e.g. "mygroup/flags" or "your-username/flags"
 # This is the GitLab “path_with_namespace” for your flags repo.
 
-BRANCH = "master"  
+BRANCH = "master"
 # The branch in which your feature-flags-patch.yaml files live (e.g. "main" or "master").
 
 # ─── THREADING LOCKS ────────────────────────────────────────────────────────────
 
 # We keep a per-(project, env) lock so that two requests trying to update the same
-# file don’t both do GET→PUT at the exact same time. 
+# file don’t both do GET→PUT at the exact same time.
 _locks: dict[str, threading.Lock] = {}
 _locks_mutex = threading.Lock()
 
@@ -176,7 +176,7 @@ def get_projects(pat: str) -> list[str]:
     project_id = _get_project_id(pat)
     url = f"{GITLAB_API_BASE}/projects/{project_id}/repository/tree"
     headers = {"Authorization": f"Bearer {FLAG_PAT}"}
-    
+
     page = 1
     result = []
     user_data = get_user_details_and_permissions(pat)
@@ -419,19 +419,19 @@ def code_owners(FLAG_PAT: str) -> dict:
     """
     project_id = _get_project_id(FLAG_PAT)
     encoded_path = "CODEOWNERS".replace("/", "%2F")
-    
+
     url = f"{GITLAB_API_BASE}/projects/{project_id}/repository/files/{encoded_path}/raw"
     headers = {"Authorization": f"Bearer {FLAG_PAT}"}
     params = {"ref": BRANCH}
-    
+
     response = requests.get(url, headers=headers, params=params)
-    
+
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.json())
-    
+
     codeowners_content = response.text
     codeowners_dict = {}
-    
+
     for line in codeowners_content.splitlines():
         if line.strip() and not line.startswith("#"):
             parts = line.split()
@@ -439,8 +439,142 @@ def code_owners(FLAG_PAT: str) -> dict:
                 path = parts[0]
                 owners = parts[1:]
                 codeowners_dict[path] = owners
-    
+
     return codeowners_dict
+
+def _encode_flags_yaml_path(project: str) -> str:
+    """
+    Encode the path for the flags.yaml file at the project root, e.g.:
+    "expense-manager-backend/flags.yaml" → URL encoded
+    """
+    raw_path = f"{project}/flags.yaml"
+    return raw_path.replace("/", "%2F")
+
+
+def _merge_flags_yaml(original_yaml: str, updates: dict[str, dict]) -> str:
+    """
+    Merge updates into flags.yaml structure.
+
+    Assuming flags.yaml has a structure like:
+    flags:
+    flag-name:
+        variants:
+        variant-key: variant-value
+        defaultVariant: someVariant
+        state: ENABLED|DISABLED
+
+
+    Updates is a dict of {flagName: dict}
+    """
+    data = yaml.safe_load(original_yaml) or {}
+    if "flags" not in data or not isinstance(data["flags"], dict):
+        data["flags"] = {}
+
+    for flag_name, flag_value in updates.items():
+        data["flags"][flag_name] = flag_value
+
+    return yaml.safe_dump(data)
+
+
+def add_flags(project: str, updates: dict[str, bool], pat: str) -> bool:
+    """
+    Adds or updates flags in {project}/flags.yaml in the GitLab repo.
+
+    Steps:
+    1) GET metadata (last_commit_id)
+    2) GET raw flags.yaml content
+    3) Merge updates into flags.yaml content
+    4) PUT updated content with last_commit_id
+    5) Return True if successful, False if 409 conflict (caller can retry)
+
+    Raises HTTPException on other errors.
+    """
+    project_id = _get_project_id(pat)
+    encoded_path = _encode_flags_yaml_path(project)
+
+    # 1) Get file metadata (last_commit_id)
+    meta = _get_file_metadata(project_id, encoded_path, pat)
+    last_commit_id = meta["last_commit_id"]
+
+    # 2) Get raw YAML content
+    original_yaml = _get_raw_file(project_id, encoded_path, pat)
+
+    # 3) Merge flag updates
+    new_yaml = _merge_flags_yaml(original_yaml, updates)
+
+    # 4) PUT updated file
+    url = f"{GITLAB_API_BASE}/projects/{project_id}/repository/files/{encoded_path}"
+    headers = {
+        "Authorization": f"Bearer {FLAG_PAT}",
+        "Content-Type": "application/json"
+    }
+
+    updated_keys = list(updates.keys())
+    user_details = get_user_details_and_permissions(pat)
+    username = user_details.get("user", {}).get("username", "Unknown User")
+    username_tag = f"@{username}"
+
+    # Get CODEOWNERS data
+    code_owners_data = code_owners(pat)
+
+    # Extract paths the user has access to
+    projects_accessible = [
+        path for path, owners in code_owners_data.items()
+        if username_tag in owners
+    ]
+    has_full_access = "*" in projects_accessible or f"/{project}/*" in projects_accessible
+
+    if not username:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    flag_summary = ", ".join(updated_keys[:5]) + ("..." if len(updated_keys) > 5 else "")
+    commit_message = f"chore(@{username}): adds {len(updated_keys)} flags ({flag_summary})"
+
+
+    payload = {
+        "branch": BRANCH,
+        "content": new_yaml,
+        "commit_message": commit_message,
+        "last_commit_id": last_commit_id,
+    }
+    # print(payload.get("content"))
+    if has_full_access:
+        # User has full access — proceed with PUT
+        resp = requests.put(url, headers=headers, json=payload)
+        if resp.status_code == 200:
+            return True
+        if resp.status_code == 409:
+            return False  # conflict, caller can retry
+        raise HTTPException(status_code=resp.status_code, detail=resp.json())
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail=f"User @{username} does not have permission to update flags in {project}. "
+                   f"Please contact a project owner or admin."
+        )
+    
+
+def add_flags_safe(project: str, updates: dict[str, bool], pat: str) -> bool:
+    """
+    Safely add or update flags in {project}/flags.yaml with locking.
+    Acquires a lock for the (project) to prevent concurrent updates.
+    Retries once if a conflict occurs.
+    """
+    lock = _get_lock(project, "flags")
+    with lock:
+        success = add_flags(project, updates, pat)
+        if success:
+            return True
+        # Conflict → retry once
+        success_retry = add_flags(project, updates, pat)
+        if success_retry:
+            return True
+        raise HTTPException(
+            status_code=409,
+            detail="Conflict updating flags. Please fetch the latest and try again."
+        )
+# print(add_flags_safe("expense-manager-backend", {"sample-flag-3": {"variants": {"on": True, "off": False}, "defaultVariant": "off", "state": "ENABLED"}}, "glpat-M8Lb62BTcWqMj5KZom27"))
+
 # print(get_envs("expense-manager-backend", "glpat-M8Lb62BTcWqMj5KZom27"))
 # print(code_owners("glpat-M8Lb62BTcWqMj5KZom27"))
 # print(get_projects("glpat-M8Lb62BTcWqMj5KZom27"))
