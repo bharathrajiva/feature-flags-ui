@@ -1,4 +1,4 @@
-# 🔧 Feature Flag UI
+# 🔧 [Feature Flags UI](https://featureflags-ui.bee.secloredevops.com)
 ![alt text](architecture.png)
 A full-stack application to centrally manage feature flags using OpenFeature Operator across environments in your Kubernetes EKS cluster. It supports both GitOps-style persistence and direct Kubernetes updates for dynamic preview environments.
 
