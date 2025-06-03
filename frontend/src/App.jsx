@@ -3,32 +3,38 @@ import Login from "./components/Login";
 import Projects from "./components/Projects";
 import Envs from "./components/Envs";
 import Flags from "./components/Flags";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 export default function App() {
-  const [token, setToken] = useState(null);
-  const [username, setUsername] = useState(null); // <-- add username state
+  const [username, setUsername] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedEnv, setSelectedEnv] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  // Fetch user info when token is set
+  // Fetch user info on mount or after login/logout
   useEffect(() => {
-    if (!token) {
-      setUsername(null);
-      return;
-    }
-
-    fetch("https://gitlab.com/api/v4/user", {
-      headers: { Authorization: `Bearer ${token}` },
+    setLoadingUser(true);
+    fetch(`${BACKEND_URL}/userinfo`, {
+      credentials: "include", // Send cookies
     })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch user");
+        if (!res.ok) throw new Error("Not authenticated");
         return res.json();
       })
-      .then((user) => setUsername(user.username))
-      .catch(() => setUsername(null));
-  }, [token]);
+      .then((data) => {
+        setUsername(data.username);
+      })
+      .catch(() => {
+        setUsername(null);
+      })
+      .finally(() => setLoadingUser(false));
+  }, []);
 
-  if (!token) {
+  if (loadingUser) {
+    return <div>Loading...</div>;
+  }
+
+  if (!username) {
     return (
       <div
         style={{
@@ -40,7 +46,7 @@ export default function App() {
         }}
       >
         <div style={{ textAlign: "center", color: "#eee" }}>
-          <Login onToken={setToken} />
+          <Login />
         </div>
       </div>
     );
@@ -87,51 +93,43 @@ export default function App() {
     opacity: 0.5,
   };
 
+  const logout = () => {
+    fetch(`${BACKEND_URL}/logout`, {
+      method: "POST",
+      credentials: "include", // Send cookies
+    }).then(() => {
+      setUsername(null);
+      setSelectedProject(null);
+      setSelectedEnv(null);
+    });
+  };
+
   return (
     <div style={containerStyle}>
       <header style={headerStyle}>
         <h1 style={{ margin: 0, fontWeight: "700" }}>
           Feature Flags Manager
           {username && (
-            <span style={{ marginLeft: "1rem", fontWeight: "400", fontSize: "1.2rem", display: "inline-block", whiteSpace: "nowrap" }}>
+            <span
+              style={{
+                marginLeft: "1rem",
+                fontWeight: "400",
+                fontSize: "1.2rem",
+                display: "inline-block",
+                whiteSpace: "nowrap",
+              }}
+            >
               — Welcome, @{username}
             </span>
           )}
         </h1>
-          <button
-            onClick={() => {
-              setToken(null);
-              setSelectedProject(null);
-              setSelectedEnv(null);
-              setUsername(null);
-            }}
-            style={{ 
-              ...buttonStyle, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px' 
-            }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 2L9.5 7.5L12 15L14.5 7.5L12 2Z" fill="#E24329" />
-              <path d="M7.5 7.5L5 12L7.5 15L10 7.5H7.5Z" fill="#FC6D26" />
-              <path d="M16.5 7.5L19 12L16.5 15L14 7.5H16.5Z" fill="#FC6D26" />
-              <path d="M12 15L10 22L14 22L12 15Z" fill="#FCA326" />
-            </svg>
-            Logout
-          </button>
-
+        <button onClick={logout} style={buttonStyle}>
+          Logout
+        </button>
       </header>
 
       <section style={sectionStyle}>
         <Projects
-          token={token}
           onSelectProject={(p) => {
             setSelectedProject(p);
             setSelectedEnv(null);
@@ -147,11 +145,7 @@ export default function App() {
       >
         <h2 style={{ marginTop: 0, color: "#ddd" }}>Environments</h2>
         {selectedProject ? (
-          <Envs
-            token={token}
-            project={selectedProject}
-            onSelectEnv={setSelectedEnv}
-          />
+          <Envs project={selectedProject} onSelectEnv={setSelectedEnv} />
         ) : (
           <p style={{ color: "#999" }}>Select a project to see environments</p>
         )}
@@ -165,7 +159,7 @@ export default function App() {
       >
         <h2 style={{ marginTop: 0, color: "#ddd" }}>Flags</h2>
         {selectedEnv ? (
-          <Flags token={token} project={selectedProject} env={selectedEnv} />
+          <Flags project={selectedProject} env={selectedEnv} />
         ) : (
           <p style={{ color: "#999" }}>
             Select an environment to view and manage flags

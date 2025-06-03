@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
 const selectStyle = {
   width: "100%",
   maxWidth: "500px",
@@ -17,7 +18,7 @@ const containerStyle = {
   margin: "1em 0",
 };
 
-export default function Envs({ token, project, onSelectEnv }) {
+export default function Envs({ project, onSelectEnv }) {
   const [envs, setEnvs] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -27,10 +28,9 @@ export default function Envs({ token, project, onSelectEnv }) {
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${BACKEND_URL}/projects/${project}/envs`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await fetch(`${BACKEND_URL}/projects/${project}/envs`, {
+          credentials: "include", // <- use cookies instead of headers
+        });
         if (!res.ok) throw new Error("Failed to load envs");
         const data = await res.json();
         setEnvs(data);
@@ -42,7 +42,7 @@ export default function Envs({ token, project, onSelectEnv }) {
     }
 
     load();
-  }, [project, token]);
+  }, [project]);
 
   if (!project) return null;
 

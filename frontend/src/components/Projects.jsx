@@ -12,13 +12,13 @@ const selectStyle = {
   transition: "border-color 0.3s",
 };
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-
 const containerStyle = {
   margin: "1em 0",
 };
 
-export default function Projects({ token, onSelectProject }) {
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+export default function Projects({ onSelectProject }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +27,7 @@ export default function Projects({ token, onSelectProject }) {
       setLoading(true);
       try {
         const res = await fetch(`${BACKEND_URL}/projects`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include", // <- Important: sends the HttpOnly cookie
         });
         if (!res.ok) throw new Error("Failed to load projects");
         const data = await res.json();
@@ -39,7 +39,7 @@ export default function Projects({ token, onSelectProject }) {
       }
     }
     load();
-  }, [token]);
+  }, []); // <- no token dependency
 
   return (
     <div style={containerStyle}>

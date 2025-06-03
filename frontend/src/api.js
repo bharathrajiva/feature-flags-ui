@@ -1,36 +1,36 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
-export async function getProjects(token) {
+export async function getProjects() {
   const res = await fetch(`${BASE_URL}/projects`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch projects");
   return res.json();
 }
 
-export async function getEnvs(project, token) {
+export async function getEnvs(project) {
   const res = await fetch(`${BASE_URL}/projects/${project}/envs`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch envs");
   return res.json();
 }
 
-export async function getFlags(project, env, token) {
+export async function getFlags(project, env) {
   const res = await fetch(`${BASE_URL}/flags/${project}/${env}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch flags");
   return res.json();
 }
 
-export async function updateFlags(project, env, flagsUpdate, token) {
+export async function updateFlags(project, env, flagsUpdate) {
   const res = await fetch(`${BASE_URL}/flags/${project}/${env}`, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify(flagsUpdate),
   });
   if (!res.ok) {
@@ -39,13 +39,14 @@ export async function updateFlags(project, env, flagsUpdate, token) {
   }
   return res.json();
 }
-export async function addFlags(project, flags, token) {
+
+export async function addFlags(project, flags) {
   const response = await fetch(`${BASE_URL}/flags/${project}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
     body: JSON.stringify(flags),
   });
   if (!response.ok) {
