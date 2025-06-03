@@ -1,5 +1,5 @@
 # 🔧 Feature Flag UI
-
+![alt text](architecture.png)
 A full-stack application to centrally manage feature flags using OpenFeature Operator across environments in your Kubernetes EKS cluster. It supports both GitOps-style persistence and direct Kubernetes updates for dynamic preview environments.
 
 ---
