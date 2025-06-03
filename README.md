@@ -4,7 +4,12 @@ A full-stack application to centrally manage feature flags using OpenFeature Ope
 
 ---
 
-## 📁 Project Structure
+<h1>
+📁 Project Structure
+  <a href="https://featureflags-ui-api.bee.secloredevops.com/docs/">
+    <img src="https://img.shields.io/badge/Open-SwaggerUI-black?logo=swagger" alt="Swagger UI" width="145" align="right"/>
+  </a>
+</h1>
 
 ```
 feature-flag-ui/
@@ -126,6 +131,7 @@ npm run dev
 - `GET /projects/{project}/envs`
 - `GET /flags/{project}/{env}`
 - `POST /flags/{project}/{env}`
+- `PUT /flags/{project}/{env}`
 
 ---
 
