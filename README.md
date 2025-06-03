@@ -3,7 +3,6 @@
 A full-stack application to centrally manage feature flags using OpenFeature Operator across environments in your Kubernetes EKS cluster. It supports both GitOps-style persistence and direct Kubernetes updates for dynamic preview environments.
 
 ---
-
 <h1>
 📁 Project Structure
   <a href="https://featureflags-ui-api.bee.secloredevops.com/docs/">
@@ -13,19 +12,27 @@ A full-stack application to centrally manage feature flags using OpenFeature Ope
 
 ```
 feature-flag-ui/
-├── backend/              # FastAPI backend
-│   ├── main.py           # API endpoints
-│   ├── git_utils.py      # Git commit + push
-│   ├── k8s_utils.py      # Kubernetes patching
-│   └── requirements.txt  # Python dependencies
-├── frontend/             # React frontend
+├── README.md
+├── architecture.png
+├── backend
+│   ├── Dockerfile
+│   ├── git_utils.py
+│   ├── k8s_utils.py
+│   ├── main.py
+│   └── requirements.txt
+├── deployment.yaml
+├── frontend
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── eslint.config.js
 │   ├── index.html
+│   ├── nginx.conf
+│   ├── package-lock.json
 │   ├── package.json
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── api.js
-│   │   └── components/   # Login, Project list, Env selector, Flag editor
-├── docker-compose.yml    # Optional dev orchestration
+│   ├── public
+│   ├── src
+│   └── vite.config.js
+└── requirements.txt
 ```
 
 ---
