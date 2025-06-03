@@ -241,8 +241,6 @@ def get_envs(project: str, pat: str) -> list[str] | None:
         if username_tag in owners
     ]
 
-    print(f"User {username} has access to the following environments: {envs_accessible}")
-
     # # If user has no access to any envs, return empty list
     # if not envs_accessible:
     #     return []
