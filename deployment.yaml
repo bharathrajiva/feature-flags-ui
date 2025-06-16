@@ -56,7 +56,7 @@ spec:
       serviceAccountName: featureflags-ui-sa
       containers:
       - name: featureflags-ui-backend
-        image: bharathrajivseclore/featureflags-ui-backend:arm64-v10
+        image: backend:latest
         ports:
         - containerPort: 8000
         envFrom:
@@ -105,7 +105,7 @@ spec:
     spec:
       containers:
       - name: featureflags-ui-frontend
-        image: bharathrajivseclore/featureflags-ui-frontend:arm64-v11
+        image: frontend:latest
         ports:
         - containerPort: 80
         resources:
@@ -147,7 +147,7 @@ metadata:
 spec:
   ingressClassName: public-ingress
   rules:
-  - host: featureflags-ui-api.bee.secloredevops.com
+  - host: featureflags-ui-api.bharathrajiv.org
     http:
       paths:
       - path: /
@@ -157,7 +157,7 @@ spec:
             name: featureflags-ui-backend
             port:
               number: 8000
-  - host: featureflags-ui.bee.secloredevops.com
+  - host: featureflags-ui.bharathrajiv.org
     http:
       paths:
       - path: /
@@ -169,5 +169,5 @@ spec:
               number: 80
   tls:
   - hosts:
-    - featureflags-ui-api.bee.secloredevops.com
-    - featureflags-ui.bee.secloredevops.com
+    - featureflags-ui-api.bharathrajiv.org
+    - featureflags-ui.bharathrajiv.org

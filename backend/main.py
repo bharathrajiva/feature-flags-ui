@@ -14,7 +14,7 @@ load_dotenv()
 # Secrets from env
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI", "https://featureflags-ui.bee.secloredevops.com")
+REDIRECT_URI = os.getenv("REDIRECT_URI", "https://featureflags-ui.bharathrajiv.org")
 # Enable CORS, allowing exactly REDIRECT_URI as the origin
 app.add_middleware(
     CORSMiddleware,

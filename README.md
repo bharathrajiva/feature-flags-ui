@@ -1,11 +1,11 @@
-# 🔧 [Feature Flags UI](https://featureflags-ui.bee.secloredevops.com)
+# 🔧 [Feature Flags UI](https://featureflags-ui.bharathrajiv.org)
 ![alt text](architecture.png)
 A full-stack application to centrally manage feature flags using OpenFeature Operator across environments in your Kubernetes EKS cluster. It supports both GitOps-style persistence and direct Kubernetes updates for dynamic preview environments.
 
 ---
 <h1>
 📁 Project Structure
-  <a href="https://featureflags-ui-api.bee.secloredevops.com/docs/">
+  <a href="https://featureflags-ui-api.bharathrajiv.org/docs/">
     <img src="https://img.shields.io/badge/Open-SwaggerUI-black?logo=swagger" alt="Swagger UI" width="145" align="right"/>
   </a>
 </h1>
